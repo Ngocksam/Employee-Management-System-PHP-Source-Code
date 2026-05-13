@@ -1,14 +1,35 @@
 <?php
-include 'conn.php';
+include "conn.php";
 
+// 1. TRAITEMENT DE LA MISE À JOUR (S'exécute quand on clique sur le bouton bleu)
+if (isset($_POST['update'])) {
+    $id = $_POST['id'];
+    $name = $_POST['name'];
+    $email = $_POST['email'];
+    $address = $_POST['address'];
+    $salary = $_POST['salary'];
+    $dob = $_POST['dob'];
+
+    $sql = "UPDATE employee SET name='$name', email='$email', address='$address', salary='$salary', dob='$dob' WHERE id=$id";
+
+    if ($conn->query($sql) === TRUE) {
+        // Redirection JavaScript pour éviter l'erreur "Headers already sent"
+        echo "<script>window.location.href='index.php';</script>";
+        exit();
+    } else {
+        echo "Error updating record: " . $conn->error;
+    }
+}
+
+// 2. RÉCUPÉRATION DES DONNÉES ACTUELLES (Pour remplir le formulaire)
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
-    $sql = "SELECT * FROM employee WHERE id = $id";
+    $sql = "SELECT * FROM employee WHERE id=$id";
     $result = $conn->query($sql);
-
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-    }
+    $row = $result->fetch_assoc();
+} else {
+    echo "<script>window.location.href='index.php';</script>";
+    exit();
 }
 ?>
 
@@ -16,60 +37,47 @@ if (isset($_GET['id'])) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Update User</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Update Employee</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
 </head>
 <body>
-    <div class="container mt-5">
-        <h2 class="text-center">Update Employee</h2>
-        <div class="mt-4">
-            <form action="update.php?id=<?= $id ?>" method="POST">
-                <div class="form-row">
-                    <div class="form-group col-md-4">
-                        <label for="name">Name</label>
-                        <input type="text" class="form-control" name="name" id="name" value="<?= $row['name'] ?>" required>
-                    </div>
-                    <div class="form-group col-md-4">
-                        <label for="email">Email</label>
-                        <input type="email" class="form-control" name="email" id="email" value="<?= $row['email'] ?>" required>
-                    </div>
-                    <div class="form-group col-md-4">
-                        <label for="address">Address</label>
-                        <input type="text" class="form-control" name="address" id="address" value="<?= $row['address'] ?>" required>
-                    </div>
-                    <div class="form-group col-md-4">
-                        <label for="salary">Salary</label>
-                        <input type="number" class="form-control" name="salary" id="salary" value="<?= $row['salary'] ?>" required>
-                    </div>
-                    <div class="form-group col-md-4">
-                        <label for="dob">Dob</label>
-                        <input type="date" class="form-control" name="dob" id="dob" value="<?= $row['dob'] ?>" required>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary">Update Employee</button>
-            </form>
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Update Employee</h2>
+    <form action="update.php" method="POST">
+        <input type="hidden" name="id" value="<?php echo $row['id']; ?>">
+        
+        <div class="row">
+            <div class="col-md-6 form-group">
+                <label>Name</label>
+                <input type="text" name="name" class="form-control" value="<?php echo $row['name']; ?>" required>
+            </div>
+            <div class="col-md-6 form-group">
+                <label>Email</label>
+                <input type="email" name="email" class="form-control" value="<?php echo $row['email']; ?>" required>
+            </div>
         </div>
-    </div>
+
+        <div class="row">
+            <div class="col-md-12 form-group">
+                <label>Address</label>
+                <input type="text" name="address" class="form-control" value="<?php echo $row['address']; ?>">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 form-group">
+                <label>Salary</label>
+                <input type="text" name="salary" class="form-control" value="<?php echo $row['salary']; ?>">
+            </div>
+            <div class="col-md-6 form-group">
+                <label>Dob</label>
+                <input type="date" name="dob" class="form-control" value="<?php echo $row['dob']; ?>">
+            </div>
+        </div>
+
+        <button type="submit" name="update" class="btn btn-primary">Update Employee</button>
+        <a href="index.php" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
 </body>
 </html>
-
-<?php
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $name = $_POST['name'];
-    $email = $_POST['email'];
-    $address = $_POST['address'];
-    $salary = $_POST['salary'];
-    $dob = date('Ymd', strtotime($_POST['dob']));
-
-    $sql = "UPDATE employee SET name='$name', email='$email', address='$address', salary='$salary', dob='$dob' WHERE id=$id";
-
-    if ($conn->query($sql) === TRUE) {
-        header("Location: index.php");
-    } else {
-        echo "Error: " . $sql . "<br>" . $conn->error;
-    }
-
-    $conn->close();
-}
-?>
