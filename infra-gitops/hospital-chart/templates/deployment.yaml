@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hospital-chart.fullname" . }}
+  labels:
+    {{- include "hospital-chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "hospital-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "hospital-chart.selectorLabels" . | nindent 8 }}
+    spec:
+      # L'InitContainer prépare le code source pour Nginx et PHP
+      initContainers:
+        - name: install-code
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # On force la création du dossier et on copie tout depuis le dossier standard PHP de l'image
+          command: ["/bin/sh", "-c", "mkdir -p /shared && cp -r /var/www/html/. /shared/"]
+          volumeMounts:
+            - name: shared-files
+              mountPath: /shared
+
+      containers:
+        # 1. Conteneur PHP-FPM
+        - name: php
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: fpm
+              containerPort: 9000
+          volumeMounts:
+            - name: shared-files
+              mountPath: /var/www/html
+
+        # 2. Conteneur NGINX (Sidecar)
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: shared-files
+              mountPath: /var/www/html
+            - name: nginx-config-volume
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+
+      volumes:
+        # Le volume partagé entre les 3 conteneurs (Init, PHP, Nginx)
+        - name: shared-files
+          emptyDir: {}
+        # La configuration Nginx injectée depuis la ConfigMap
+        - name: nginx-config-volume
+          configMap:
+            name: nginx-config

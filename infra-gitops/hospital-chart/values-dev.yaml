@@ -1,0 +1,25 @@
+replicaCount: 1
+
+image:
+  repository: hospital-app
+  tag: local
+  pullPolicy: Never 
+
+service:
+  type: NodePort
+  port: 80
+
+# C'est ici que la magie opère : Helm va comprendre qu'il faut MySQL
+mysql:
+  enabled: false
+  image:
+    repository: mysql
+    tag: "5.7"
+  auth:
+    database: hospital_db
+    rootPassword: rootpassword
+    username: hospital_user
+    password: hospital_password
+  primary:
+    persistence:
+      enabled: false # On désactive le stockage disque pour que ça aille plus vite en dev
